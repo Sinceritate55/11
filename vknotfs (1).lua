@@ -3,7 +3,7 @@ script_authors("Aniki")
 script_version("1.2.3")
 script_version_number(6)
 
---deps23123
+--depsproverka
 local effil = require 'effil'
 local encoding = require 'encoding'
 local imgui = require 'imgui'
@@ -33,14 +33,14 @@ function update()
         local response = requests.get(raw)
         if response.status_code == 200 then
             downloadUrlToFile(decodeJson(response.text)['url'], thisScript().path, function (id, status, p1, p2)
-                print('РЎРєР°С‡РёРІР°СЋ '..decodeJson(response.text)['url']..' РІ '..thisScript().path)
+                print('Скачиваю '..decodeJson(response.text)['url']..' в '..thisScript().path)
                 if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-                    sampAddChatMessage('РЎРєСЂРёРїС‚ РѕР±РЅРѕРІР»РµРЅ, РїРµСЂРµР·Р°РіСЂСѓР·РєР°...', -1)
+                    sampAddChatMessage('Скрипт обновлен, перезагрузка...', -1)
                     thisScript():reload()
                 end
             end)
         else
-            sampAddChatMessage('РћС€РёР±РєР°, РЅРµРІРѕР·РјРѕР¶РЅРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёРµ, РєРѕРґ: '..response.status_code, -1)
+            sampAddChatMessage('Ошибка, невозможно установить обновление, код: '..response.status_code, -1)
         end
     end
     return f
@@ -143,7 +143,7 @@ local function load_font()
 	imgui.GetIO().Fonts:Clear()
 	local builder = imgui.ImFontAtlasGlyphRangesBuilder()
 	builder:AddRanges(imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
-	builder:AddText(u8'вЂљвЂћвЂ¦вЂ вЂЎв‚¬вЂ°вЂ№вЂвЂ™вЂњвЂќвЂўвЂ“вЂ”в„ўвЂєв„–')
+	builder:AddText(u8'‚„…†‡€‰‹‘’“”•–—™›№')
 	glyph_ranges = builder:BuildRanges()
 	imgui.GetIO().Fonts:AddFontFromFileTTF(font_path, 14.0*1.3, nil, glyph_ranges)
 	imgui.RebuildFonts()
@@ -157,7 +157,7 @@ end
 --vk longpoll api globals
 local key, server, ts
 
-function threadHandle(runner, url, args, resolve, reject) -- РѕР±СЂР°Р±РѕС‚РєР° effil РїРѕС‚РѕРєР° Р±РµР· Р±Р»РѕРєРёСЂРѕРІРѕРє
+function threadHandle(runner, url, args, resolve, reject) -- обработка effil потока без блокировок
 	local t = runner(url, args)
 	local r = t:get(0)
 	while not r do
@@ -176,7 +176,7 @@ function threadHandle(runner, url, args, resolve, reject) -- РѕР±СЂР°Р�
 	t:cancel(0)
 end
 
-function requestRunner() -- СЃРѕР·РґР°РЅРёРµ effil РїРѕС‚РѕРєР° СЃ С„СѓРЅРєС†РёРµР№ https Р·Р°РїСЂРѕСЃР°
+function requestRunner() -- создание effil потока с функцией https запроса
 	return effil.thread(function(u, a)
 		local https = require 'ssl.https'
 		local ok, result = pcall(https.request, u, a)
@@ -196,7 +196,7 @@ function async_http_request(url, args, resolve, reject)
 	end)
 end
 
-local vkerr, vkerrsend -- СЃРѕРѕР±С‰РµРЅРёРµ СЃ С‚РµРєСЃС‚РѕРј РѕС€РёР±РєРё, nil РµСЃР»Рё РІСЃРµ РѕРє
+local vkerr, vkerrsend -- сообщение с текстом ошибки, nil если все ок
 
 function loop_async_http_request(url, args, reject)
 	local runner = requestRunner()
@@ -204,7 +204,7 @@ function loop_async_http_request(url, args, reject)
 	lua_thread.create(function()
 		while true do
 			while not key do wait(0) end
-			url = server .. '?act=a_check&key=' .. key .. '&ts=' .. ts .. '&wait=25' --РјРµРЅСЏРµРј url РєР°Р¶РґС‹Р№ РЅРѕРІС‹Р№ Р·Р°РїСЂРѕСЃ РїРѕС‚РѕРєa, С‚Р°Рє РєР°Рє server/key/ts РјРѕРіСѓС‚ РёР·РјРµРЅСЏС‚СЊСЃСЏ
+			url = server .. '?act=a_check&key=' .. key .. '&ts=' .. ts .. '&wait=25' --меняем url каждый новый запрос потокa, так как server/key/ts могут изменяться
 			threadHandle(runner, url, args, longpollResolve, reject)
 		end
 	end)
@@ -304,7 +304,7 @@ function longpollResolve(result)
 			print(result)
 		end
 		if result:sub(1,1) ~= '{' then
-			vkerr = 'РћС€РёР±РєР°!\nРџСЂРёС‡РёРЅР°: РќРµС‚ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ VK!'
+			vkerr = 'Ошибка!\nПричина: Нет соединения с VK!'
 			return
 		end
 		local t = decodeJson(result)
@@ -336,7 +336,7 @@ function longpollResolve(result)
 						return
 					end
 					if v.object.message.text then
-						local text = v.object.message.text .. ' ' --РєРѕСЃС‚С‹Р»СЊ РЅР° СЃР»СѓС‡Р°Р№ РµСЃР»Рё РѕРґРЅР° РєРѕРјР°РЅРґР° СЏРІР»СЏРµС‚СЃСЏ РїРѕРґСЃС‚СЂРѕРєРѕР№ РґСЂСѓРіРѕР№ (!d Рё !dc РєР°Рє РїСЂРёРјРµСЂ)
+						local text = v.object.message.text .. ' ' --костыль на случай если одна команда является подстрокой другой (!d и !dc как пример)
 						if text:match('^' .. toCmd.v .. '%s-%d+%s') then
 							if accId == tonumber(text:match('^' .. toCmd.v .. '%s-(%d+)%s')) then
 								text = text:gsub(text:match('^' .. toCmd.v .. '%s-%d+%s*'), '')
@@ -399,12 +399,12 @@ function longpollGetKey()
 				print(result)
 			end
 			if not result:sub(1,1) == '{' then
-				vkerr = 'РћС€РёР±РєР°!\nРџСЂРёС‡РёРЅР°: РќРµС‚ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ VK!'
+				vkerr = 'Ошибка!\nПричина: Нет соединения с VK!'
 				return
 			end
 			local t = decodeJson(result)
 			if t.error then
-				vkerr = 'РћС€РёР±РєР°!\nРљРѕРґ: ' .. t.error.error_code .. ' РџСЂРёС‡РёРЅР°: ' .. t.error.error_msg
+				vkerr = 'Ошибка!\nКод: ' .. t.error.error_code .. ' Причина: ' .. t.error.error_msg
 				return
 			end
 			server = t.response.server
@@ -437,7 +437,7 @@ function vk_request(msg)
 				return
 			end
 			if t.error then
-				vkerrsend = 'РћС€РёР±РєР°!\nРљРѕРґ: ' .. t.error.error_code .. ' РџСЂРёС‡РёРЅР°: ' .. t.error.error_msg
+				vkerrsend = 'Ошибка!\nКод: ' .. t.error.error_code .. ' Причина: ' .. t.error.error_msg
 				return
 			end
 			vkerrsend = nil
@@ -464,11 +464,11 @@ function main()
 	longpollGetKey()
 	while not key do wait(1) end
 	loop_async_http_request(server .. '?act=a_check&key=' .. key .. '&ts=' .. ts .. '&wait=25', '')
-    local lastver = update():getLastVersion()
-    sampAddChatMessage('Скрипт загружен, версия: '..lastver, -1)
+	local lastver = update():getLastVersion()
 	sampRegisterChatCommand('scriptupd', function()
-		update():download()
+	update():download()
 	end)
+	sampAddChatMessage('Вышло обновление скрипта ('..thisScript().version..' -> '..lastver..'), введите /scriptupd для обновления!', -1)
 	wait(-1)
 end
 
@@ -521,7 +521,7 @@ local filters = {}
 
 local inputsTable = {}
 
-local stateCombo = u8'РќРµР°РєС‚РёРІРµРЅ\0РћС‚РїСЂР°РІР»СЏС‚СЊ\0РРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ\0\0'
+local stateCombo = u8'Неактивен\0Отправлять\0Игнорировать\0\0'
 
 function initializeInputs()
 	inputsTable = {}
@@ -563,22 +563,22 @@ function imgui.OnDrawFrame()
 		imgui.SetNextWindowSize(imgui.ImVec2(500*global_scale.v, 300*global_scale.v))
 		imgui.Begin(u8"VK Notifications by Aniki", nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.MenuBar)
 		imgui.BeginMenuBar()
-		if imgui.MenuItem(u8'РќР°СЃС‚СЂРѕР№РєРё') then
+		if imgui.MenuItem(u8'Настройки') then
 			winState = 1 
 		end
-		if imgui.MenuItem(u8'Р¤РёР»СЊС‚СЂС‹ (Р§Р°С‚)') then
+		if imgui.MenuItem(u8'Фильтры (Чат)') then
 			winState = 2 
 		end
-		if imgui.MenuItem(u8'РЎРѕР±С‹С‚РёСЏ') then
+		if imgui.MenuItem(u8'События') then
 			winState = 3 
 		end
-		if imgui.MenuItem(u8'РЎС‚Р°С‚СѓСЃ') then
+		if imgui.MenuItem(u8'Статус') then
 			winState = 4 
 		end
-		if imgui.MenuItem(u8'РџСЂРѕС‡РµРµ') then
+		if imgui.MenuItem(u8'Прочее') then
 			winState = 5 
 		end
-		if imgui.MenuItem(u8'Рћ СЃРєСЂРёРїС‚Рµ') then
+		if imgui.MenuItem(u8'О скрипте') then
 			winState = 6 
 		end
 		imgui.EndMenuBar()
@@ -606,31 +606,31 @@ end
 
 function mainWindow()
 	if vkerr then
-		imgui.Text(u8'РЎРѕСЃС‚РѕСЏРЅРёРµ РїСЂРёС‘РјР°: ' .. u8(vkerr))
+		imgui.Text(u8'Состояние приёма: ' .. u8(vkerr))
 		if imgui.Button('Reconnect', imgui.ImVec2(100*global_scale.v, 20*global_scale.v)) then
 			longpollGetKey()
 		end
 	else
-		imgui.Text(u8'РЎРѕСЃС‚РѕСЏРЅРёРµ РїСЂРёС‘РјР°: РђРєС‚РёРІРЅРѕ!')
+		imgui.Text(u8'Состояние приёма: Активно!')
 	end
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ РёР· VK РІ С‡Р°С‚', recvBuf)
+	imgui.Checkbox(u8'Отправлять сообщения из VK в чат', recvBuf)
 	if vkerrsend then
-		imgui.Text(u8'РЎРѕСЃС‚РѕСЏРЅРёРµ РѕС‚РїСЂР°РІРєРё: ' .. u8(vkerrsend))
+		imgui.Text(u8'Состояние отправки: ' .. u8(vkerrsend))
 	else
-		imgui.Text(u8'РЎРѕСЃС‚РѕСЏРЅРёРµ РѕС‚РїСЂР°РІРєРё: РђРєС‚РёРІРЅРѕ!')
+		imgui.Text(u8'Состояние отправки: Активно!')
 	end
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ РІ VK', sendBuf)
-	if sendBuf.v and imgui.Button(u8'РўРµСЃС‚РѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+	imgui.Checkbox(u8'Отправлять уведомления в VK', sendBuf)
+	if sendBuf.v and imgui.Button(u8'Тестовое сообщение', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		vk_request('Test')
 	end
 	imgui.PushItemWidth(200)
 	imgui.InputText('User ID', idBuf)
-	imgui.Hint('РћР±СЏР·Р°С‚РµР»СЊРЅРѕ С‡РёСЃР»Рѕ, РјРѕР¶РЅРѕ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РІ РЅР°СЃС‚СЂРѕР№РєР°С… Р°РєРєР°СѓРЅС‚Р° VK РїСЂРё РёР·РјРµРЅРµРЅРёРё СЃСЃС‹Р»РєРё РЅР° СЃС‚СЂР°РЅРёС†Сѓ')
+	imgui.Hint('Обязательно число, можно посмотреть в настройках аккаунта VK при изменении ссылки на страницу')
 	imgui.InputText('Group ID', groupBuf)
-	imgui.Hint('РћР±СЏР·Р°С‚РµР»СЊРЅРѕ С‡РёСЃР»Рѕ, РјРѕР¶РЅРѕ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РІ СѓРїСЂР°РІР»РµРЅРёРё СЃРѕРѕР±С‰РµСЃС‚РІРѕРј - СЃСЃС‹Р»РєР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ')
+	imgui.Hint('Обязательно число, можно посмотреть в управлении сообществом - ссылка на страницу')
 	imgui.InputText('Group token', tokenBuf, imgui.InputTextFlags.Password)
-	imgui.Hint('РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕРѕР±С‰РµСЃС‚РІРѕРј - Р Р°Р±РѕС‚Р° СЃ API - РљР»СЋС‡Рё РґРѕСЃС‚СѓРїР°.\nРќРµРѕР±С…РѕРґРёРјС‹Рµ РїСЂР°РІР° РґРѕСЃС‚СѓРїР°: СѓРїСЂР°РІР»РµРЅРёРµ СЃРѕРѕР±С‰РµСЃС‚РІРѕРј, СЃРѕРѕР±С‰РµРЅРёСЏ СЃРѕРѕР±С‰РµСЃС‚РІР°')
-	imgui.Combo(u8'РўРµРєСѓС‰РёР№ РїСЂРѕС„РёР»СЊ', profileBuf, makeStringForCombo(filters))
+	imgui.Hint('Управление сообществом - Работа с API - Ключи доступа.\nНеобходимые права доступа: управление сообществом, сообщения сообщества')
+	imgui.Combo(u8'Текущий профиль', profileBuf, makeStringForCombo(filters))
 	imgui.PopItemWidth(200)
 	imgui.SetCursorPosX(75*global_scale.v)
 	if imgui.Button('Save', imgui.ImVec2(50*global_scale.v, 20*global_scale.v)) then
@@ -646,15 +646,15 @@ function mainWindow()
 end
 
 function filtersWindow()
-	if imgui.Button(u8'РќРѕРІС‹Р№ РїСЂРѕС„РёР»СЊ', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+	if imgui.Button(u8'Новый профиль', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		table.insert(filters, {})
 		local profile = filters[#filters]
-		profile.name = 'РќРѕРІС‹Р№ РїСЂРѕС„РёР»СЊ'
+		profile.name = 'Новый профиль'
 		profile.filters = {}
 		initializeInputs()
 	end
 	imgui.SameLine()
-	if imgui.Button(u8'РЎРѕС…СЂР°РЅРёС‚СЊ РІСЃРµ', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+	if imgui.Button(u8'Сохранить все', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		for key, val in ipairs(filters) do
 			val.name = u8:decode(inputsTable[key].name.v)
 			for k, v in ipairs(val.filters) do
@@ -668,7 +668,7 @@ function filtersWindow()
 		printStringNow('SAVED', 2000)
 	end
 	imgui.SameLine()
-	if imgui.Button(u8'Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+	if imgui.Button(u8'Восстановить', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		local f = io.open('moonloader/config/vkfilters.json', 'r')
 		local text = f:read('*a')
 		filters = decodeJson(text)
@@ -677,19 +677,19 @@ function filtersWindow()
 	end
 	for k, v in ipairs(inputsTable) do
 		if imgui.CollapsingHeader(u8(k .. '. ' .. filters[k].name .. '##' .. k)) then
-			imgui.InputText(u8'РќР°Р·РІР°РЅРёРµ РїСЂРѕС„РёР»СЏ##' .. k, v.name)
-			if imgui.Button(u8'РќРѕРІС‹Р№ С„РёР»СЊС‚СЂ##' .. k, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+			imgui.InputText(u8'Название профиля##' .. k, v.name)
+			if imgui.Button(u8'Новый фильтр##' .. k, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 				local profile = filters[k]
 				table.insert(profile.filters, {})
 				local filter = profile.filters[#profile.filters]
-				filter.name = 'РќРѕРІС‹Р№ С„РёР»СЊС‚СЂ'
+				filter.name = 'Новый фильтр'
 				filter.color = ''
 				filter.pattern = ''
 				filter.state = 0
 				initializeInputs()
 			end
 			imgui.SameLine()
-			if imgui.Button(u8'РЈРґР°Р»РёС‚СЊ РїСЂРѕС„РёР»СЊ##' .. k, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+			if imgui.Button(u8'Удалить профиль##' .. k, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 				table.remove(filters, k)
 				initializeInputs()
 				break
@@ -697,11 +697,11 @@ function filtersWindow()
 				imgui.Indent(20*global_scale.v)
 				for key, val in ipairs(v) do
 					if imgui.CollapsingHeader(u8(key .. '. ' .. filters[k].filters[key].name .. '##' .. k .. key)) then
-						imgui.InputText(u8'РќР°Р·РІР°РЅРёРµ С„РёР»СЊС‚СЂР°##' .. k .. key, val.name)
-						imgui.InputText(u8'Р¦РІРµС‚ СЃС‚СЂРѕРєРё##' .. k .. key, val.color)
-						imgui.InputText(u8'РџР°С‚С‚РµСЂРЅ СЃС‚СЂРѕРєРё##' .. k .. key, val.pattern)
-						imgui.Combo(u8'Р РµР¶РёРј СЂР°Р±РѕС‚С‹##' .. k .. key, val.state, stateCombo)
-						if imgui.Button(u8'РЈРґР°Р»РёС‚СЊ С„РёР»СЊС‚СЂ##' .. k .. key, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+						imgui.InputText(u8'Название фильтра##' .. k .. key, val.name)
+						imgui.InputText(u8'Цвет строки##' .. k .. key, val.color)
+						imgui.InputText(u8'Паттерн строки##' .. k .. key, val.pattern)
+						imgui.Combo(u8'Режим работы##' .. k .. key, val.state, stateCombo)
+						if imgui.Button(u8'Удалить фильтр##' .. k .. key, imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 							table.remove(filters[k].filters, key)
 							initializeInputs()
 							break
@@ -717,15 +717,15 @@ end
 
 function eventsWindow()
 	imgui.PushItemWidth(150*global_scale.v)
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ Рѕ РґРёР°Р»РѕРіР°С…', diaEnable)
-	imgui.InputText(u8'РљРѕРјР°РЅРґР° РѕС‚РІРµС‚Р° РЅР° РґРёР°Р»РѕРі (enter)', diaAccept)
-	imgui.Hint('Р’ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЃС‚РёР»СЏ РґРёР°Р»РѕРіР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ РїРѕ-СЂР°Р·РЅРѕРјСѓ\n' .. diaAccept.v .. ' [РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё] РІ СЃР»СѓС‡Р°Рµ СЃ РґРёР°Р»РѕРіРѕРј СЃ РІС‹Р±РѕСЂРѕРј СЃС‚СЂРѕРєРё (list)\n' .. diaAccept.v .. ' [РІРІРѕРґ] РІ СЃР»СѓС‡Р°Рµ РґРёР°Р»РѕРіР° СЃРѕ РІРІРѕРґРѕРј СЃС‚СЂРѕРєРё (input)')
-	imgui.InputText(u8'РљРѕРјР°РЅРґР° РѕС‚РєР»РѕРЅРµРЅРёСЏ РґРёР°Р»РѕРіР° (esc)', diaDecline)
+	imgui.Checkbox(u8'Отправлять уведомления о диалогах', diaEnable)
+	imgui.InputText(u8'Команда ответа на диалог (enter)', diaAccept)
+	imgui.Hint('В зависимости от стиля диалога может использоваться по-разному\n' .. diaAccept.v .. ' [номер строки] в случае с диалогом с выбором строки (list)\n' .. diaAccept.v .. ' [ввод] в случае диалога со вводом строки (input)')
+	imgui.InputText(u8'Команда отклонения диалога (esc)', diaDecline)
 	imgui.PopItemWidth()
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ РѕР± РёР·РјРµРЅРµРЅРёРё РїРѕР·РёС†РёРё СЃРµСЂРІРµСЂРѕРј', otherPos)
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ Рѕ РїРѕС‚РµСЂРµ СЃРѕРµРґРёРЅРµРЅРёСЏ/РєРёРєРµ', otherDc)
-	imgui.Checkbox(u8'РћС‚РїСЂР°РІР»СЏС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ РїСЂРё СЃРїР°РІРЅРµ РїРµСЂСЃРѕРЅР°Р¶Р°', otherSpawn)
-	imgui.Hint('РћС‚РїСЂР°РІР»СЏРµС‚СЃСЏ С‚Р°РєР¶Рµ РїСЂРё СЃРјРµСЂС‚Рё')
+	imgui.Checkbox(u8'Отправлять уведомления об изменении позиции сервером', otherPos)
+	imgui.Checkbox(u8'Отправлять уведомления о потере соединения/кике', otherDc)
+	imgui.Checkbox(u8'Отправлять уведомления при спавне персонажа', otherSpawn)
+	imgui.Hint('Отправляется также при смерти')
 	imgui.SetCursorPosX(175*global_scale.v)
 	if imgui.Button('Save', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		ini.dialogs.enable = diaEnable.v
@@ -740,16 +740,16 @@ function eventsWindow()
 end
 
 function accWindow()
-	imgui.Text(u8'ID РґР°РЅРЅРѕРіРѕ Р°РєРєР°СѓРЅС‚Р°: ' .. accId)
-	imgui.Hint('РљР°Р¶РґРѕРјСѓ Р°РєРєР°СѓРЅС‚Сѓ РІС‹РґР°РµС‚СЃСЏ СѓРЅРёРєР°Р»СЊРЅС‹Р№ ID РїСЂРё Р·Р°С…РѕРґРµ РЅР° СЃРµСЂРІРµСЂ\nРЎРєСЂРёРїС‚ С…СЂР°РЅРёС‚ С‚РѕР»СЊРєРѕ РЅРёРє Рё IP СЃРµСЂРІРµСЂР° РІ С„Р°Р№Р»Рµ vkaccs.ini РІ moonloader/config\nР”Р»СЏ СЃР±СЂРѕСЃР° ID РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ СѓРґР°Р»РёС‚СЊ СЌС‚РѕС‚ С„Р°Р№Р»')
+	imgui.Text(u8'ID данного аккаунта: ' .. accId)
+	imgui.Hint('Каждому аккаунту выдается уникальный ID при заходе на сервер\nСкрипт хранит только ник и IP сервера в файле vkaccs.ini в moonloader/config\nДля сброса ID можно просто удалить этот файл')
 	imgui.PushItemWidth(130*global_scale.v)
-	imgui.InputText(u8'РљРѕРјР°РЅРґР° РґР»СЏ РѕР±СЂР°С‰РµРЅРёСЏ Рє РѕРїСЂРµРґРµР»РµРЅРЅРѕРјСѓ Р°РєРєР°СѓРЅС‚Сѓ', toCmd)
-	imgui.Hint('РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: ' .. toCmd.v .. ' [id Р°РєРєР°СѓРЅС‚Р°] [С‚РµРєСЃС‚/РєРѕРјР°РЅРґР° РґР»СЏ Р°РєРєР°СѓРЅС‚Р°].\nР‘РµР· РґР°РЅРЅРѕР№ РєРѕРјР°РЅРґС‹ СЃРѕРѕР±С‰РµРЅРёРµ РѕС‚РїСЂР°РІРёС‚СЃСЏ РЅР° РІСЃРµ Р°РєС‚РёРІРЅС‹Рµ Р°РєРєР°СѓРЅС‚С‹')
+	imgui.InputText(u8'Команда для обращения к определенному аккаунту', toCmd)
+	imgui.Hint('Использование: ' .. toCmd.v .. ' [id аккаунта] [текст/команда для аккаунта].\nБез данной команды сообщение отправится на все активные аккаунты')
 	imgui.PopItemWidth()
-	imgui.Checkbox(u8'Р”РѕР±Р°РІР»СЏС‚СЊ РІ РєРѕРЅС†Рµ СЃС‚СЂРѕРєРё С‡Р°С‚Р° РµРµ С†РІРµС‚ РІ С‡РёСЃР»РѕРІРѕРј С„РѕСЂРјР°С‚Рµ', chatColor)
-	imgui.Hint('РџРѕР»СѓС‡РµРЅРЅС‹Рµ С‡РёСЃР»Р° РјРѕР¶РЅРѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РІ С„РёР»СЊС‚СЂР°С…')
-	imgui.Checkbox(u8'РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ СЂРµР¶РёРј РґРµР±Р°РіР°', debugMode)
-	imgui.Hint('Р‘СѓРґРµС‚ РґРѕР±Р°РІР»СЏС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹ Р·Р°РїСЂРѕСЃРѕРІ РІ Р»РѕРі moonloader, РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РІ СЃР»СѓС‡Р°Рµ РїСЂРѕР±Р»РµРј СЃ РїРѕР»СѓС‡РµРЅРёРµРј/РѕС‚РїСЂР°РІРєРѕР№ СЃРѕРѕР±С‰РµРЅРёР№')
+	imgui.Checkbox(u8'Добавлять в конце строки чата ее цвет в числовом формате', chatColor)
+	imgui.Hint('Полученные числа можно использовать в фильтрах')
+	imgui.Checkbox(u8'Активировать режим дебага', debugMode)
+	imgui.Hint('Будет добавлять результаты запросов в лог moonloader, использовать в случае проблем с получением/отправкой сообщений')
 	imgui.SetCursorPosX(175*global_scale.v)
 	if imgui.Button('Save', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		ini.other.chatcolor = chatColor.v
@@ -763,16 +763,16 @@ end
 
 function statusWindow()
 	imgui.PushItemWidth(130*global_scale.v)
-	imgui.InputText(u8'РљРѕРјР°РЅРґР° Р·Р°РїСЂРѕСЃР° СЃС‚Р°С‚СѓСЃР° Р°РєРєР°СѓРЅС‚Р°', status)
+	imgui.InputText(u8'Команда запроса статуса аккаунта', status)
 	imgui.PopItemWidth()
-	imgui.Text(u8'Р’С‹Р±РµСЂРёС‚Рµ РїСѓРЅРєС‚С‹ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ СЃС‚Р°С‚СѓСЃРµ:')
-	imgui.Checkbox(u8'РќРёРє', statusNick)
-	imgui.Checkbox(u8'РќР°Р·РІР°РЅРёРµ СЃРµСЂРІРµСЂР°', statusServer)
-	imgui.Checkbox(u8'РћРЅР»Р°Р№РЅ РЅР° СЃРµСЂРІРµСЂРµ', statusOnline)
+	imgui.Text(u8'Выберите пункты для отображения в статусе:')
+	imgui.Checkbox(u8'Ник', statusNick)
+	imgui.Checkbox(u8'Название сервера', statusServer)
+	imgui.Checkbox(u8'Онлайн на сервере', statusOnline)
 	imgui.Checkbox(u8'HP', statusHp)
 	imgui.Checkbox(u8'Armor', statusArmor)
-	imgui.Checkbox(u8'Р”РµРЅСЊРіРё РЅР° СЂСѓРєР°С…', statusMoney)
-	imgui.Checkbox(u8'РџРѕР·РёС†РёСЏ', statusPos)
+	imgui.Checkbox(u8'Деньги на руках', statusMoney)
+	imgui.Checkbox(u8'Позиция', statusPos)
 	imgui.SetCursorPosX(175*global_scale.v)
 	if imgui.Button('Save', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		ini.other.status = u8:decode(status.v)
@@ -789,9 +789,9 @@ function statusWindow()
 end
 
 function aboutWindow()
-	imgui.Text(u8'РђРІС‚РѕСЂ СЃРєСЂРёРїС‚Р°: Aniki')
-	imgui.Text(u8'CРїРµС†РёР°Р»СЊРЅРѕ РґР»СЏ blast.hk')
-	if imgui.Button(u8'РўРµРјР° РЅР° BlastHack', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
+	imgui.Text(u8'Автор скрипта: Aniki')
+	imgui.Text(u8'Cпециально для blast.hk')
+	if imgui.Button(u8'Тема на BlastHack', imgui.ImVec2(150*global_scale.v, 20*global_scale.v)) then
 		os.execute('explorer https://blast.hk/threads/33250/')
 	end
 end
@@ -814,27 +814,27 @@ function sampev.onServerMessage(col, msg)
 	if chatColor.v then
 		return {col, msg .. ' COL: ' .. col}
 	end
-	if (msg:find("%[РћС€РёР±РєР°%] {FFFFFF}РРіСЂРѕРє '(.+)' РЅРµ РІ СЃРµС‚Рё!") or msg:find("%[(%d+)%] (.+) %| РЈСЂРѕРІРµРЅСЊ: (.+) %| UID: (.+) %|%s*[РђР¤Рљ: %d+ СЃРµРє %|]* packetloss: (%d+.%d+) %((.+)%)") or msg:find("%[РћС€РёР±РєР°%] {FFFFFF}РРіСЂРѕРє '(.+)' РЅРµ РЅР°Р№РґРµРЅ!")) then
-		if msg:find("%[РћС€РёР±РєР°%] {FFFFFF}РРіСЂРѕРє '(.+)' РЅРµ РІ СЃРµС‚Рё!") then
-			ID_check = msg:match("%[РћС€РёР±РєР°%] {FFFFFF}РРіСЂРѕРє 'ID: (%d+)' РЅРµ РІ СЃРµС‚Рё!")
-			nickis = ('РћС€РёР±РєР°! РРіСЂРѕРє РЅРµ РЅР°Р№РґРµРЅ')
-		elseif msg:find("%[(%d+)%] (.+) %| РЈСЂРѕРІРµРЅСЊ: (%d+) %| UID: (.+) %|%s*[РђР¤Рљ: %d+ СЃРµРє %|]* packetloss: (%d+.%d+) %((.+)%)") then
-			ID_check, Name_check = msg:match("%[(%d+)%] (.+) %| РЈСЂРѕРІРµРЅСЊ: (%d+) %| UID: (.+) %|%s*[РђР¤Рљ: %d+ СЃРµРє %|]* packetloss: (%d+.%d+) %((.+)%)")
+	if (msg:find("%[Ошибка%] {FFFFFF}Игрок '(.+)' не в сети!") or msg:find("%[(%d+)%] (.+) %| Уровень: (.+) %| UID: (.+) %|%s*[АФК: %d+ сек %|]* packetloss: (%d+.%d+) %((.+)%)") or msg:find("%[Ошибка%] {FFFFFF}Игрок '(.+)' не найден!")) then
+		if msg:find("%[Ошибка%] {FFFFFF}Игрок '(.+)' не в сети!") then
+			ID_check = msg:match("%[Ошибка%] {FFFFFF}Игрок 'ID: (%d+)' не в сети!")
+			nickis = ('Ошибка! Игрок не найден')
+		elseif msg:find("%[(%d+)%] (.+) %| Уровень: (%d+) %| UID: (.+) %|%s*[АФК: %d+ сек %|]* packetloss: (%d+.%d+) %((.+)%)") then
+			ID_check, Name_check = msg:match("%[(%d+)%] (.+) %| Уровень: (%d+) %| UID: (.+) %|%s*[АФК: %d+ сек %|]* packetloss: (%d+.%d+) %((.+)%)")
 			nickis = ("[".. ID_check .."] ".. Name_check .. "")
-		elseif msg:find("%[РћС€РёР±РєР°%] {FFFFFF}РРіСЂРѕРє '(.+)' РЅРµ РЅР°Р№РґРµРЅ!") then
-			nickis = ('РћС€РёР±РєР°! РРіСЂРѕРє РЅРµ РЅР°Р№РґРµРЅ')
+		elseif msg:find("%[Ошибка%] {FFFFFF}Игрок '(.+)' не найден!") then
+			nickis = ('Ошибка! Игрок не найден')
 		end 
 	end
-	-- if msg:find("%[A%] Clyde_Redwood[(.+)] РїРµСЂРµРґР°Р» (.+) РґРѕРЅР°С‚Р° РёРіСЂРѕРєСѓ (.+)[(%d+)]") then
+	-- if msg:find("%[A%] Clyde_Redwood[(.+)] передал (.+) доната игроку (.+)[(%d+)]") then
 		-- print(msg)
     -- end
-	if msg:find("РќРµ РЅР°Р№РґРµРЅРѕ РёРіСЂРѕРєРѕРІ РІ AFK") then
-		afkkick = "РќРµ РЅР°Р№РґРµРЅРѕ РёРіСЂРѕРєРѕРІ РІ AFK!"
+	if msg:find("Не найдено игроков в AFK") then
+		afkkick = "Не найдено игроков в AFK!"
     end
-	if msg:find("Р’С‹ СѓСЃРїРµС€РЅРѕ РєРёРєРЅСѓР»Рё (%d+) РёРіСЂРѕРєРѕРІ") then
+	if msg:find("Вы успешно кикнули (%d+) игроков") then
 		local colvo = 0
-		colvo = string.match(msg,"Р’С‹ СѓСЃРїРµС€РЅРѕ РєРёРєРЅСѓР»Рё (%d+) РёРіСЂРѕРєРѕРІ")
-		afkkick = ("Р’С‹ СѓСЃРїРµС€РЅРѕ РєРёРєРЅСѓР»Рё ".. colvo .." РёРіСЂРѕРєРѕРІ")
+		colvo = string.match(msg,"Вы успешно кикнули (%d+) игроков")
+		afkkick = ("Вы успешно кикнули ".. colvo .." игроков")
     end
 end
 local massiv = {}
@@ -918,7 +918,7 @@ end
 
 --internal
 
-function vkKeyboard() --СЃРѕР·РґР°РµС‚ РєРѕРЅРєСЂРµС‚РЅСѓСЋ РєР»Р°РІРёР°С‚СѓСЂСѓ РґР»СЏ Р±РѕС‚Р° VK, РєР°Рє СЃРґРµР»Р°С‚СЊ РґР»СЏ Р±РѕР»РµРµ РѕР±С‰РёС… СЃР»СѓС‡Р°РµРІ РїРѕРєР° РЅРµ Р·Р°РґСѓРјС‹РІР°Р»СЃСЏ
+function vkKeyboard() --создает конкретную клавиатуру для бота VK, как сделать для более общих случаев пока не задумывался
 	local keyboard = {}
 	keyboard.one_time = false
 	keyboard.buttons = {}
@@ -929,13 +929,13 @@ function vkKeyboard() --СЃРѕР·РґР°РµС‚ РєРѕРЅРєСЂРµС
 	row[1].color = 'positive'
 	row[1].action.type = 'text'
 	row[1].action.payload = '{"button": "status"}'
-	row[1].action.label = 'РЎС‚Р°С‚СѓСЃ'
+	row[1].action.label = 'Статус'
 	row[2] = {}
 	row[2].action = {}
 	row[2].color = 'primary'
 	row[2].action.type = 'text'
 	row[2].action.payload = '{"button": "help"}'
-	row[2].action.label = 'РџРѕРјРѕС‰СЊ'
+	row[2].action.label = 'Помощь'
 	return encodeJson(keyboard)
 end
 
