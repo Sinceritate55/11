@@ -14,21 +14,6 @@ u8 = encoding.UTF8
 
 
 autoupdate('https://github.com/Sinceritate55/11/blob/749c23d94298c21ac3eff5840632f1531a601bdc/vknotfs%20(1).lua')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 local ID_check = (0)
 local Name_check = (0)
 local nickis = 0
