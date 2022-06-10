@@ -468,7 +468,6 @@ function main()
 	sampRegisterChatCommand('scriptupd', function()
 	update():download()
 	end)
-	sampAddChatMessage('Вышло обновление скрипта ('..thisScript().version..' -> '..lastver..'), введите /scriptupd для обновления!', -1)
 	wait(-1)
 end
 
