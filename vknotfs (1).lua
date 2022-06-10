@@ -464,10 +464,12 @@ function main()
 	longpollGetKey()
 	while not key do wait(1) end
 	loop_async_http_request(server .. '?act=a_check&key=' .. key .. '&ts=' .. ts .. '&wait=25', '')
-	wait(-1)
+    local lastver = update():getLastVersion()
+    sampAddChatMessage('Скрипт загружен, версия: '..lastver, -1)
 	sampRegisterChatCommand('scriptupd', function()
-    update():download()
+		update():download()
 	end)
+	wait(-1)
 end
 
 function getMyName()
