@@ -13,7 +13,7 @@ encoding.default = 'CP1251'
 u8 = encoding.UTF8
 
 
-autoupdate()
+autoupdate('https://github.com/Sinceritate55/11/blob/601dc77d08b92e501bab6012528d82987087ac75/vknotfs%20(1).lua')
 
 
 local ID_check = (0)
