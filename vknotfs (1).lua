@@ -13,7 +13,48 @@ encoding.default = 'CP1251'
 u8 = encoding.UTF8
 
 
-autoupdate('https://github.com/Sinceritate55/11/blob/749c23d94298c21ac3eff5840632f1531a601bdc/vknotfs%20(1).lua')
+
+
+
+function update()
+    local raw = 'https://raw.githubusercontent.com/Sinceritate55/11/main/update.json'
+    local dlstatus = require('moonloader').download_status
+    local requests = require('requests')
+    local f = {}
+    function f:getLastVersion()
+        local response = requests.get(raw)
+        if response.status_code == 200 then
+            return decodeJson(response.text)['last']
+        else
+            return 'UNKNOWN'
+        end
+    end
+    function f:download()
+        local response = requests.get(raw)
+        if response.status_code == 200 then
+            downloadUrlToFile(decodeJson(response.text)['url'], thisScript().path, function (id, status, p1, p2)
+                print('Скачиваю '..decodeJson(response.text)['url']..' в '..thisScript().path)
+                if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+                    sampAddChatMessage('Скрипт обновлен, перезагрузка...', -1)
+                    thisScript():reload()
+                end
+            end)
+        else
+            sampAddChatMessage('Ошибка, невозможно установить обновление, код: '..response.status_code, -1)
+        end
+    end
+    return f
+end
+
+
+
+
+
+
+
+
+
+
 local ID_check = (0)
 local Name_check = (0)
 local nickis = 0
@@ -935,61 +976,8 @@ end
 
 --
 
-function autoupdate(json_url, prefix, url)
-  local dlstatus = require('moonloader').download_status
-  local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
-  if doesFileExist(json) then os.remove(json) end
-  downloadUrlToFile(json_url, json,
-    function(id, status, p1, p2)
-      if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-        if doesFileExist(json) then
-          local f = io.open(json, 'r')
-          if f then
-            local info = decodeJson(f:read('*a'))
-            updatelink = info.updateurl
-            updateversion = info.latest
-            f:close()
-            os.remove(json)
-            if updateversion ~= thisScript().version then
-              lua_thread.create(function(prefix)
-                local dlstatus = require('moonloader').download_status
-                local color = -1
-                sampAddChatMessage((prefix..'Обнаружено обновление. Пытаюсь обновиться c '..thisScript().version..' на '..updateversion), color)
-                wait(250)
-                downloadUrlToFile(updatelink, thisScript().path,
-                  function(id3, status1, p13, p23)
-                    if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-                      print(string.format('Загружено %d из %d.', p13, p23))
-                    elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-                      print('Загрузка обновления завершена.')
-                      sampAddChatMessage((prefix..'Обновление завершено!'), color)
-                      goupdatestatus = true
-                      lua_thread.create(function() wait(500) thisScript():reload() end)
-                    end
-                    if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
-                      if goupdatestatus == nil then
-                        sampAddChatMessage((prefix..'Обновление прошло неудачно. Запускаю устаревшую версию..'), color)
-                        update = false
-                      end
-                    end
-                  end
-                )
-                end, prefix
-              )
-            else
-              update = false
-              print('v'..thisScript().version..': Обновление не требуется.')
-            end
-          end
-        else
-          print('v'..thisScript().version..': Не могу проверить обновление. Смиритесь или проверьте самостоятельно на '..url)
-          update = false
-        end
-      end
-    end
-  )
-  while update ~= false do wait(100) end
-end
+
+
 
 
 
