@@ -3,7 +3,7 @@ script_authors("Aniki")
 script_version("1.2.3")
 script_version_number(6)
 
---deps
+--deps23123
 local effil = require 'effil'
 local encoding = require 'encoding'
 local imgui = require 'imgui'
