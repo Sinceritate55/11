@@ -1,5 +1,3 @@
-function test()
-{
-console.log('123');
+var test = function() {
+   console.log('123');
 };
-test();
