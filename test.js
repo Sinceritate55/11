@@ -1,1 +1,4 @@
-var test = (123);
+function test()
+    {
+        console.log('123')
+    };
